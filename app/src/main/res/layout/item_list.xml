@@ -50,14 +50,32 @@
             android:text="Test"
             android:textSize="18sp" />
 
-        <ProgressBar
-            android:id="@+id/progressBarDocument"
-            style="?android:attr/progressBarStyleHorizontal"
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:indeterminate="true"
-            android:visibility="visible" />
+            android:layout_height="wrap_content">
+
+            <ProgressBar
+                android:id="@+id/progressBarDocument"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="4dp"
+                android:layout_marginTop="10dp"
+                android:layout_toStartOf="@id/textProgress"
+                android:indeterminate="false"
+                android:visibility="visible" />
+
+            <TextView
+                android:id="@+id/textProgress"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentEnd="true"
+                android:layout_margin="4dp"
+                android:gravity="center"
+                android:text="sdsds"
+                android:textColor="#000000" />
+
+        </RelativeLayout>
 
     </LinearLayout>
 

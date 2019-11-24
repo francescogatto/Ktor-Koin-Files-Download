@@ -2,6 +2,7 @@ package net.francescogatto.kkdownloadfile.home
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -9,12 +10,16 @@ import io.ktor.client.HttpClient
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.francescogatto.kkdownloadfile.R
+import net.francescogatto.kkdownloadfile.model.DownloadResult
 import net.francescogatto.kkdownloadfile.model.DummyData
 import net.francescogatto.kkdownloadfile.utils.downloadFile
 import net.francescogatto.kkdownloadfile.utils.openFile
 import org.koin.android.ext.android.inject
+import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
@@ -37,7 +42,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         with(recyclerView) {
             layoutManager = LinearLayoutManager(this@MainActivity)
-            DividerItemDecoration(context, (layoutManager as LinearLayoutManager).orientation).apply {
+            DividerItemDecoration(
+                context,
+                (layoutManager as LinearLayoutManager).orientation
+            ).apply {
                 addItemDecoration(this)
             }
             myAdapter = AttachmentAdapter(data) { dummy ->
@@ -49,19 +57,34 @@ class MainActivity : AppCompatActivity() {
 
     fun manageClickAdapter(dummy: DummyData) {
         when {
-            dummy.file.exists() -> openFile(dummy.file) 
+            dummy.isDownloading -> {
+                //Do nothing
+            }
+            dummy.file.exists() -> openFile(dummy.file)
             else -> {
-                myAdapter.setDownload(dummy, true)
-                CoroutineScope(Dispatchers.IO).launch {
-                    ktor.downloadFile(dummy.file, dummy.url) {
-                        if (it) {
-                            Log.d("TAG", "File downloaded!")
-                        } else {
-                            dummy.file.delete()
-                            Log.d("TAG", "File not downlaoded")
+                try {
+                    downloadWithFlow(dummy)
+                } catch (e: Exception) {
+                    //generic error while downloading
+                }
+            }
+        }
+    }
+
+    private fun downloadWithFlow(dummy: DummyData) {
+        CoroutineScope(Dispatchers.IO).launch {
+            ktor.downloadFile(dummy.file, dummy.url).collect {
+                withContext(Dispatchers.Main) {
+                    when (it) {
+                        is DownloadResult.Success -> {
+                            myAdapter.setDownloading(dummy, false)
                         }
-                        runOnUiThread {
-                            myAdapter.setDownload(dummy, false)
+                        is DownloadResult.Error -> {
+                            myAdapter.setDownloading(dummy, false)
+                            Toast.makeText(this@MainActivity, "Error while downloading ${dummy.title}", Toast.LENGTH_LONG).show()
+                        }
+                        is DownloadResult.Progress -> {
+                            myAdapter.setProgress(dummy, it.progress)
                         }
                     }
                 }

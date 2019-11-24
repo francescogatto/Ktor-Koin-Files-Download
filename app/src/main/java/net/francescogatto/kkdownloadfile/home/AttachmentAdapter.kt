@@ -1,5 +1,6 @@
 package net.francescogatto.kkdownloadfile.home
 
+import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,16 +24,39 @@ class AttachmentAdapter(var dummyes: Array<DummyData>, val listener: (DummyData)
             downloadIcon.isVisible = !dummy.file.exists()
             documentTypeIcon.isVisible = dummy.file.exists()
             progressBarDocument.isVisible = dummy.isDownloading
+            textProgress.isVisible = dummy.isDownloading
             setOnClickListener {
                 listener(dummy)
             }
         }
     }
 
-    fun setDownload(dummy: DummyData, isDownloading: Boolean) {
-        dummyes.find { dummy.id == it.id }?.isDownloading = isDownloading
-        notifyDataSetChanged()
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        super.onBindViewHolder(holder, position, payloads)
+        if (payloads.firstOrNull() != null) {
+            with(holder.itemView) {
+                (payloads.first() as Bundle).getInt("progress").also {
+                    progressBarDocument.progress = it
+                    progressBarDocument.isVisible = it < 99
+                    textProgress.isVisible = it < 99
+                    textProgress.text = "$it %"
+                }
+            }
+        }
     }
+
+    fun setDownloading(dummy: DummyData, isDownloading: Boolean) {
+        getDummy(dummy)?.isDownloading = isDownloading
+        notifyItemChanged(dummyes.indexOf(dummy))
+    }
+
+    fun setProgress(dummy: DummyData, progress: Int) {
+        getDummy(dummy)?.progress = progress
+        notifyItemChanged(dummyes.indexOf(dummy), Bundle().apply { putInt("progress", progress) })
+    }
+
+    private fun getDummy(dummy: DummyData) = dummyes.find { dummy.id == it.id }
+
 
 }
 
